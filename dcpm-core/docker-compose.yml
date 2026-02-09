@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  dcpm-postgres:
+    image: postgres:15
+    container_name: dcpm-postgres
+    environment:
+      POSTGRES_USER: dcpm_user
+      POSTGRES_PASSWORD: dcpm_pass
+      POSTGRES_DB: dcpm
+    ports:
+      - "5432:5432"
+    volumes:
+      - dcpm_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dcpm_user -d dcpm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dcpm-core-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dcpm-core-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      dcpm-postgres:
+        condition: service_healthy
+    environment:
+      # Эти переменные должны совпадать с настройками PostgreSQL
+      POSTGRES_USER: dcpm_user
+      POSTGRES_PASSWORD: dcpm_pass
+      POSTGRES_DB: dcpm
+      POSTGRES_HOST: dcpm-postgres  # имя сервиса в Docker-сети
+      POSTGRES_PORT: 5432
+      # DATABASE_URL: postgresql+asyncpg://dcpm_user:dcpm_pass@dcpm-postgres:5432/dcpm  # опционально
+
+volumes:
+  dcpm_data:

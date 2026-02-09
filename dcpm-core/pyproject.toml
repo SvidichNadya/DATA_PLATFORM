@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "dcpm-core"
+version = "0.1.0"
+description = "MVP API for Data Collection & Processing Module (DCPM)"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "app"}]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110"
+uvicorn = {extras = ["standard"], version = "^0.27"}
+pydantic = "^2.12"
+sqlalchemy = "^2.0"
+asyncpg = "^0.27"
+psycopg2-binary = "^2.9"          # нужен, если будешь использовать sync SQLAlchemy или инструменты
+alembic = "^1.12"                  # для миграций (можно использовать позже)
+python-dotenv = "^1.0"             # для env файлов
+loguru = "^0.7"                    # альтернативное логирование, если захочешь
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.4"
+pytest-asyncio = "^0.21"
+black = "^23.3"
+isort = "^6.0"
+mypy = "^1.4"
+
+[build-system]
+requires = ["poetry-core>=1.6.0"]
+build-backend = "poetry.core.masonry.api"
