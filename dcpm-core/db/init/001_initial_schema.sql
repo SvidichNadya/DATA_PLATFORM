@@ -1,14 +1,15 @@
 -- =============================================
--- Initial schema for DCPM MVP (v1.1)
+-- DCPM MVP v1.1 – Full schema (fixed)
 -- =============================================
 
 -- ----------------------------
 -- 1. Ingestion: raw incoming data
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS ingestion_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ingestion_records_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source VARCHAR(255) NOT NULL,
-    data JSONB NOT NULL,
+    payload JSONB NOT NULL,
+    classification JSONB NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -16,30 +17,42 @@ CREATE TABLE IF NOT EXISTS ingestion_records (
 -- 2. Classification: data classification
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS classification_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ingestion_id UUID NOT NULL REFERENCES ingestion_records(id) ON DELETE CASCADE,
-    classification JSONB NOT NULL,
-    classified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    classification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ingestion_id UUID NOT NULL REFERENCES ingestion_records(ingestion_records_id),
+    level TEXT NOT NULL,
+    tags JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_classification_ingestion_id
+    ON classification_records(ingestion_id);
+
 -- ----------------------------
--- 3. Audit logs: logging actions
+-- 3. Audit logs: logging actions (immutable)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    action VARCHAR(255) NOT NULL,
-    actor VARCHAR(255) NULL,
-    target_id UUID NULL,
-    details JSONB NULL,
+    audit_logs_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    action TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id UUID NOT NULL,
+    actor TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_audit_entity
+    ON audit_logs (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created_at
+    ON audit_logs (created_at DESC);
+
+REVOKE UPDATE, DELETE ON audit_logs FROM PUBLIC;
 
 -- ----------------------------
 -- 4. Lifecycle events: data lifecycle management
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS lifecycle_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ingestion_id UUID NOT NULL REFERENCES ingestion_records(id) ON DELETE CASCADE,
+    lifecycle_events_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ingestion_id UUID NOT NULL REFERENCES ingestion_records(ingestion_records_id) ON DELETE CASCADE,
     event_type VARCHAR(255) NOT NULL,
     scheduled_at TIMESTAMPTZ NOT NULL,
     executed_at TIMESTAMPTZ NULL,
@@ -51,9 +64,9 @@ CREATE TABLE IF NOT EXISTS lifecycle_events (
 -- 5. Rights requests: user requests (delete/export)
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS rights_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rights_requests_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id VARCHAR(255) NOT NULL,
-    request_type VARCHAR(50) NOT NULL, -- e.g., 'deletion', 'portability'
+    request_type VARCHAR(50) NOT NULL,
     target_id UUID NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -64,7 +77,7 @@ CREATE TABLE IF NOT EXISTS rights_requests (
 -- 6. Breach events: security incidents
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS breach_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    breach_events_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     description TEXT NOT NULL,
     severity VARCHAR(50) NOT NULL DEFAULT 'medium',
     detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -76,7 +89,7 @@ CREATE TABLE IF NOT EXISTS breach_events (
 -- 7. Security events
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS security_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    security_events_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_type VARCHAR(255) NOT NULL,
     actor VARCHAR(255) NULL,
     target_id UUID NULL,
@@ -85,7 +98,7 @@ CREATE TABLE IF NOT EXISTS security_events (
 );
 
 -- ----------------------------
--- Indexes
+-- Indexes for fast queries
 -- ----------------------------
 CREATE INDEX IF NOT EXISTS idx_ingestion_created_at ON ingestion_records(created_at);
 CREATE INDEX IF NOT EXISTS idx_classification_ingestion_id ON classification_records(ingestion_id);

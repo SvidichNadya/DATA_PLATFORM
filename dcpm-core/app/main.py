@@ -7,7 +7,7 @@ from app.database import (
     close_pool,
 )
 
-# Routers (пока example-заглушки, как у тебя сейчас)
+# Routers
 from app.ingestion.router import router as ingestion_router
 from app.classification.router import router as classification_router
 from app.storage.router import router as storage_router
@@ -40,6 +40,7 @@ async def on_startup() -> None:
     """
     Application startup hook.
     Ensures database is reachable before serving requests.
+    Initializes connection pool.
     """
     await wait_for_database()
 
@@ -47,7 +48,7 @@ async def on_startup() -> None:
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
     """
-    Graceful shutdown.
+    Graceful shutdown: closes database pool.
     """
     await close_pool()
 
@@ -58,6 +59,9 @@ async def on_shutdown() -> None:
 
 @app.get("/health", tags=["Health"])
 async def health():
+    """
+    Returns service health including DB connectivity.
+    """
     db_ok = await check_database_health()
 
     if not db_ok:
@@ -76,7 +80,7 @@ async def health():
 
 
 # =========================
-# Root
+# Root endpoint
 # =========================
 
 @app.get("/", tags=["Root"])
@@ -89,14 +93,14 @@ async def root():
 
 
 # =========================
-# Routers
+# Routers registration
 # =========================
 
-app.include_router(ingestion_router, prefix="/ingestion", tags=["Ingestion"])
-app.include_router(classification_router, prefix="/classification", tags=["Classification"])
-app.include_router(storage_router, prefix="/storage", tags=["Storage"])
-app.include_router(audit_router, prefix="/audit", tags=["Audit"])
-app.include_router(lifecycle_router, prefix="/lifecycle", tags=["Lifecycle"])
-app.include_router(rights_router, prefix="/rights", tags=["Rights"])
-app.include_router(breach_router, prefix="/breach", tags=["Breach"])
-app.include_router(security_router, prefix="/security", tags=["Security"])
+app.include_router(ingestion_router)
+app.include_router(classification_router)
+app.include_router(storage_router)
+app.include_router(audit_router)
+app.include_router(lifecycle_router)
+app.include_router(rights_router)
+app.include_router(breach_router)
+app.include_router(security_router)
