@@ -98,6 +98,24 @@ CREATE TABLE IF NOT EXISTS security_events (
 );
 
 -- ----------------------------
+-- 8. Storage: processed / normalized data
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS storage_records (
+    storage_records_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ingestion_id UUID NOT NULL REFERENCES ingestion_records(ingestion_records_id) ON DELETE CASCADE,
+    classification_id UUID NULL REFERENCES classification_records(classification_id) ON DELETE SET NULL,
+    normalized_payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_storage_ingestion_id
+    ON storage_records(ingestion_id);
+
+CREATE INDEX IF NOT EXISTS idx_storage_classification_id
+    ON storage_records(classification_id);
+
+
+-- ----------------------------
 -- Indexes for fast queries
 -- ----------------------------
 CREATE INDEX IF NOT EXISTS idx_ingestion_created_at ON ingestion_records(created_at);

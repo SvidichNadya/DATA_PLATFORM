@@ -4,6 +4,7 @@ from typing import List
 from asyncpg import Connection
 
 from app.classification.schemas import ClassificationCreate, ClassificationRead
+from app.classification.models import SELECT_BY_ID_SQL
 from app.audit.crud import write_audit_log
 from app.audit.schemas import AuditLogCreate
 from app.audit.constants import AuditAction
@@ -66,6 +67,20 @@ async def create_classification(db: Connection, data: ClassificationCreate) -> C
         created_at=record["created_at"],
     )
 
+async def get_classification(db: Connection, classification_id: UUID) -> ClassificationRead | None:
+    """
+    Получение конкретной классификации по ID.
+    """
+    record = await db.fetchrow(SELECT_BY_ID_SQL, classification_id)
+    if not record:
+        return None
+    return ClassificationRead(
+        classification_id=record["classification_id"],
+        ingestion_id=record["ingestion_id"],
+        level=record["level"],
+        tags=json.loads(record["tags"]) if record["tags"] else {},
+        created_at=record["created_at"]
+    )
 
 async def get_classification_by_ingestion(
     db: Connection, ingestion_id: uuid.UUID
