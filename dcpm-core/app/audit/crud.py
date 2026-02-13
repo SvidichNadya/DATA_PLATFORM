@@ -1,20 +1,14 @@
+"""
+CRUD logic for audit module.
+Responsible ONLY for writing immutable audit records.
+"""
+
 import uuid
 import json
 from asyncpg import Connection
-from app.audit.schemas import AuditLogCreate
 
-# SQL-запрос с явным ::jsonb для actor и metadata
-INSERT_AUDIT_SQL = """
-INSERT INTO audit_logs (
-    audit_logs_id,
-    action,
-    entity_type,
-    entity_id,
-    actor,
-    metadata
-)
-VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb);
-"""
+from app.audit.schemas import AuditLogCreate
+from app.audit.models import INSERT_AUDIT_SQL
 
 
 async def write_audit_log(
@@ -23,10 +17,12 @@ async def write_audit_log(
 ) -> None:
     """
     Writes immutable audit log entry.
-    Must be called INSIDE transaction.
-    Serializes actor and metadata to JSON before writing to DB.
+
+    IMPORTANT:
+    - Must be called INSIDE an active DB transaction.
+    - Serializes actor and metadata to JSON before writing.
     """
-    # Преобразуем dict -> JSON строка
+
     actor_json = json.dumps(audit.actor) if audit.actor else None
     metadata_json = json.dumps(audit.metadata) if audit.metadata else None
 

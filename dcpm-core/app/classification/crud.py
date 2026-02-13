@@ -1,4 +1,5 @@
 import uuid
+from uuid import UUID
 import json
 from typing import List
 from asyncpg import Connection
